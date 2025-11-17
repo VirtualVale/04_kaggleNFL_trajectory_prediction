@@ -61,3 +61,58 @@ def plot_single_player(input_df: pd.DataFrame, output_df: pd.DataFrame) -> None:
     play_direction_symbol = '<-' if info_row['play_direction'] == 'right' else '->' 
     plt.text(59, 52, f"Play direction: {play_direction_symbol}, w. {info_row['absolute_yardline_number']} yards to go", ha='right', va='top')
     plt.show()
+
+
+
+def plot_multiple_players(filtered_input_df: pd.DataFrame, filtered_output_df: pd.DataFrame) -> None:
+    """Plot the routes of the involved players in the play. Expects a dataframe filtered on a play id.
+
+    Args:
+        filtered_input_df (pd.DataFrame): Dataframe with data containing one play.
+        filtered_output_df (pd.DataFrame): Dataframe where the ouput data for the corresponding play exists.
+    """
+
+    plt.figure(figsize=(12, 6))
+    players = filtered_input_df['player_name'].unique()
+
+    for idx, player in enumerate(players):
+        player_df = filtered_input_df[filtered_input_df['player_name'] == player]
+        
+        if len(player_df) != 0:
+            player_info = player_df.iloc[0]
+            player_predict = player_info['player_to_predict']
+            player_side = player_info['player_side']
+            nfl_id = player_info['nfl_id']
+            play_id = player_info['play_id']
+            marker = '*' if player_side == 'Offense' else '.'
+            light_flag = 'light' if player_predict else ''
+            if player_side == 'Offense':
+                color = f'{light_flag}blue'
+            else:
+                color = f'{light_flag}green'
+            player_df_output = filtered_output_df[(filtered_output_df['nfl_id'] == nfl_id) & (filtered_output_df['play_id'] == play_id)]
+        else:
+            raise ValueError("Player dataframe is empty.")
+        plt.scatter(player_df['x'], player_df['y'], label=player, color=color, s=20, alpha=0.4, marker = marker)
+        plt.scatter(player_df_output['x'], player_df_output['y'], label=player, color='purple', s=20, alpha=0.4, marker=marker)
+
+    plt.scatter(filtered_input_df['ball_land_x'], filtered_input_df['ball_land_y'], c='red')
+
+    plt.xlim(0, 120)
+    plt.ylim(0, 54)
+    plt.xlabel('x')
+    plt.ylabel('y')
+    plt.title('Player positions (x, y) for play_id {}'.format(filtered_input_df['play_id'].iloc[0]))
+    legend_elements = [
+        Line2D([0], [0], color='red', lw=2, label='Ball landing position'),
+        Line2D([0], [0], color='lightgreen', lw=2, label='Player to predict (Defense)', marker='.'),
+        Line2D([0], [0], color='lightblue', lw=2, label='Player to predict (Offense)', marker='*'),
+        Line2D([0], [0], color='green', lw=2, label='Defense', marker='.'),
+        Line2D([0], [0], color='blue', lw=2, label='Offense', marker='*'),
+        Line2D([0], [0], color='purple', lw=2, label='Output Defense', marker='.'),
+        Line2D([0], [0], color='purple', lw=2, label='Output Offense', marker='*'),
+    ]
+    plt.legend(handles=legend_elements, bbox_to_anchor=(1.05, 1), loc='upper left', fontsize='small')
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.show()
